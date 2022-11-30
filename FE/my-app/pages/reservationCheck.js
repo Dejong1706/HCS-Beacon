@@ -1,23 +1,24 @@
-import React from "react";
+import React, {useState, useEffect} from "react";
 import Header from "./component/Header";
+import UserModal from "./component/UserModal";
 import css from "styled-jsx/css";
-import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileExcel } from "@fortawesome/free-solid-svg-icons";
+import TabMenu from "./component/TabMenu";
+import SideBar from "./component/SideBar";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import ExportExcel from "./component/Excelexport";
+import axios from "axios";
+import {Cookies} from "react-cookie";
 import {
-    Select,
-    Table,
-    Thead,
-    Tbody,
-    Tfoot,
-    Tr,
-    Th,
-    Td,
-    TableCaption,
-    TableContainer,
-  } from '@chakra-ui/react'
-
-const style = css`
+    Accordion,
+    Button,
+    Box,
+    AccordionItem,
+    AccordionButton,
+    AccordionPanel,
+    AccordionIcon
+} from '@chakra-ui/react'
+const style = css `
     .container{
         width: 95%;
         height: 80vh;
@@ -31,29 +32,6 @@ const style = css`
         height: 100%;
     }
 
-    .SideBar{
-        width: 15%;
-        height: 100%;
-    }
-
-    .SideBar ul{
-        padding: 0;
-        list-style: none;
-        text-align: center;
-    }
-
-    .SideBar ul li{
-        font-size: 30px;
-        width: 90%;
-        margin-bottom: 15px;
-        border-bottom: solid 2px gray;
-        font-weight: bold;
-    }
-
-    .SideBar ul li:hover{
-        color: blue;
-    }
-    
     .Main{
         width: 85%;
         border-left: solid 5px gray;
@@ -63,6 +41,7 @@ const style = css`
     .MainHeader{
         display: flex;
         justify-content: space-between;
+        align-items: center;
         border-top: solid 4px gray;
         border-bottom: solid 4px gray;
     }
@@ -70,12 +49,6 @@ const style = css`
     .MainHeaderTitle{
         font-size: 40px;
         font-weight: bold;
-    }
-
-    .icon{
-        margin: 0;
-        font-size: 50px;
-        color: green;
     }
 
     .MainHeaderTitle{
@@ -94,36 +67,11 @@ const style = css`
         color: blue;
     }
 
-    .MenuBar{
-        height: 8%;
-    }
-
-    .MenuBarUl{
-        list-style: none;
-        height: 100%;
-        display: flex;
-        margin-left: 30px;
-        align-items: flex-end;
-    }
-    .MenuBarUl li{
-        width: 12%;
-        border-right: solid 2px #f5f5f5;
-        border-left: solid 2px #f5f5f5;
-        border-top: solid 2px #f5f5f5;
-        background-color: #bdbdbd;
-        padding: 8px 18px;
-        font-weight: bold;
-        border-top-right-radius: 30px;
-    }
-    .MenuBarUl li:hover{
-        background-color: #448aff;
-    }
-
     .daySelect{
         border-bottom: solid 4px gray;
         display: flex;
         flex-direction: row;
-        height: 17%;
+        height: 13%;
         font-weight: bold;
     }
 
@@ -135,7 +83,7 @@ const style = css`
     }
 
     .daySelect .timeSelect p:first-child{
-        margin-right: 1%;
+        width: 12%;
     }
 
     .daySelect .timeSelect p:not(:first-child){
@@ -143,108 +91,298 @@ const style = css`
         margin-right: 1%;
     }
 
-`;
+    .daySelect .DatePicker{
+        width: 10%;
+    }
 
-function reservationCheck(){
-    return(
-        <div>
-            <Header/>
-            <div className="container">
-                <div className="containerBody">
-                    <div className = "SideBar">
-                        <ul>
-                            <li><Link href = "./main">출입문 현황</Link></li>
-                            <li><Link href = "./ManagementSettings">출입문 관리설정</Link></li>
-                            <li className = "Select"><Link href = "#">출입문 입출이력</Link></li>
-                            <li><Link href = "#">출입자 관리</Link></li>
-                            <li><Link href = "#">출입 관리자</Link></li>
-                            <li><Link href = "#">경보 이력</Link></li>
-                            <li><Link href = "#">문자발생 이력</Link></li>
-                        </ul>
+    table{
+        width: 100%;
+        font-weight: bold;
+        font-size: 20px;
+        width: 100%;
+        margin: 0;
+        text-align: center;
+    }
+
+    table tr th{
+        font-size: 25px;
+        width: 11.1%;
+    }
+
+    table tr td{
+        width: 11.53%;
+    }
+
+    .TableThead{
+        border-bottom: solid 2px gray;
+        margin-bottom: 1%;
+    }
+
+    .TableTbody{
+        height: 65%;
+        overflow: auto;
+        text-align: center;
+    }
+
+    .TableTbody table tr{
+        height: 50px;
+    }
+`;
+const cookies = new Cookies();
+function reservationCheck() {
+    useEffect(() => {
+        getDoorInfo();
+        getCookieFunc();
+    }, [])
+    //쿠키로 최고관리자, 일반관리자를 구분하는 코드
+    const [isSuper, setIsSuper] = useState(false);
+    const getCookieFunc = () => {
+        if (cookies.get("isSuper") === "1") {
+            setIsSuper(true);
+        } else {
+            setIsSuper(false);
+        }
+    //
+    }
+    const header = [
+        "No.",
+        "이름",
+        "전화번호",
+        "날짜",
+        "입실",
+        "퇴실",
+        "출입사유",
+        "승인여부",
+        "상세정보"
+    ];
+    const [Data, setData] = useState([]);
+    const [DataClone, setDataClone] = useState(Data);
+    const [number, setNumber] = useState(0);
+    const [startDate, setStartDate] = useState(new Date());
+    const [endDate, setEndDate] = useState(new Date());
+    const DataLen = [];
+    for (let i = 0; i < Data.length; i++) {
+        DataLen.push(false);
+    }
+    const [disabled, setDisabled] = useState(DataLen);
+    // 시작일 선택시 시작일별 필터링 함수
+    const StartDaySearch = (date) => {
+        const Month = date.getMonth() + 1;
+        const Day = date.getDate();
+        const startDayresult = DataClone.filter(e => new Date(e.enterTime).getMonth() + 1 === Month && new Date(e.enterTime).getDate() === Day);
+        setData(startDayresult);
+    }
+    // 시작일 ~ 마지막일 선택시 필터링 함수
+    const EndDaySearch = (date) => { 
+        const endDayresult = DataClone.filter(e => {
+            const newDate = new Date(e.enterDate);
+            newDate.setHours(newDate.getHours() - 9);
+            return newDate.getTime() <= date.getTime() && new Date(e.enterDate).getTime() >= startDate.getTime()});
+        setData(endDayresult);
+    }
+    const haddleButtonTrue = (e) => { // Y버튼을 눌렀을 때 작동하는 함수;
+        e.preventDefault();
+        e.currentTarget.disabled = true;
+        e.currentTarget.style.color = "white";
+        e.currentTarget.style.backgroundColor = "green";
+        const disabledClone = [...disabled];
+        disabledClone[number] = true;
+        setDisabled(disabledClone);
+        setNumber(number + 1);
+    }
+    const haddleButtonFalse = (e) => { // N버튼을 눌렀을 때 작동하는 함수;
+        e.preventDefault();
+        e.currentTarget.disabled = true;
+        e.currentTarget.style.color = "white";
+        e.currentTarget.style.backgroundColor = "red";
+        const disabledClone = [...disabled];
+        disabledClone[number] = true;
+        setDisabled(disabledClone);
+        setNumber(number + 1);
+    }
+    const getDoorInfo = async () => {   //서버에 데이터를 받아오는 함수
+        const URL = 'http://localhost:5000/user/visitor';
+        axios.defaults.withCredentials = true;
+        axios.get(URL).then(res => {
+            if (res.status === 200) {
+                setData(res.data);
+                setDataClone(res.data);
+            } else {
+                alert(res.data);
+            }
+        });
+    }
+    const postInfoTrue = (e) => {   //Y를 눌렀을 떄 
+        const trueInfo = {
+            "allowId": e,
+            "isAllowed": true
+        }
+        postAllowInfo(trueInfo);
+    }
+    const postInfoFalse = (e) => {
+        const trueInfo = {
+            "allowId": e,
+            "isAllowed": false
+        }
+        postAllowInfo(trueInfo);
+    }
+    const postAllowInfo = async (item) => {
+        const URL = "http://localhost:5000/user/visitor"
+        axios.defaults.withCredentials = true;
+        await axios.post(URL, item).then(res => {
+            if (res.status === 200) {
+                console.log("======================", "데이터 전송 성공");
+            } else {
+                console.log("데이터전송 실패");
+            }
+        });
+    }
+    return (<div>
+        <Header/>
+        <div className="container">
+            <div className="containerBody">
+                <SideBar pageNumber = "3" isSuper = {isSuper}/>
+                <div className="Main">
+                    <TabMenu pageNumber = "2"/>
+                    <div className="MainHeader">
+                        <h1 className="MainHeaderTitle">🟦 방문자 예약승인</h1>
+                        <ExportExcel excelData={Data}
+                            fileName={"Excel Export"}/>
                     </div>
-                    <div className = "Main">
-                        <div className = "MenuBar">
-                            <ul className = "MenuBarUl">
-                                <li><Link href = "./ExitHistory">출입문 입출이력</Link></li>
-                                <li style= {{backgroundColor: "#448aff"}}>방문자 예약승인</li>
-                                <li><Link href  = "./emergencyDoorOpen">비상도어 개방</Link></li>
-                            </ul>
-                        </div>
-                        <div className = "MainHeader">
-                            <h1 className = "MainHeaderTitle">🟦 방문자 예약승인</h1>
-                            <h1 className = "icon"><FontAwesomeIcon icon={faFileExcel}/></h1>
-                        </div>
-                        <div className = "daySelect">
-                            <div className = "timeSelect">
-                                <p>▶ 조회날짜 선택 🗓️</p>
-                                <p>▶ 조회 시간 선택</p>
-                                <Select placeholder='Start Time' width="10%">
-                                    <option value='option1'>Option 1</option>
-                                    <option value='option2'>Option 2</option>
-                                    <option value='option3'>Option 3</option>
-                                </Select>
-                                <p>~</p>
-                                <Select placeholder='End Time' width="10%">
-                                    <option value='option1'>Option 1</option>
-                                    <option value='option2'>Option 2</option>
-                                    <option value='option3'>Option 3</option>
-                                </Select>
+                    <div className="daySelect">
+                        <div className="timeSelect">
+                            <p style={
+                                {width: "10%"}
+                            }>▶ 날짜 선택 🗓️</p>
+                            <div className="DatePicker"
+                                style={
+                                    {
+                                        border: "solid 3px gray",
+                                        marginRight: "3%",
+                                        width: "13%"
+                                    }
+                            }>
+                                <DatePicker selected={startDate}
+                                    onChange={
+                                        (date) => {
+                                            setStartDate(date)
+                                            StartDaySearch(date)
+                                        }
+                                    }
+                                    dateFormat="yyyy년 MM월 dd일"
+                                    selectsStart
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    />
                             </div>
+                        <div className="DatePicker"
+                            style={
+                                {
+                                    border: "solid 3px gray",
+                                    width: "13%"
+                                }
+                        }>
+                            <DatePicker selected={endDate}
+                                onChange={
+                                    (date) => {
+                                        setEndDate(date)
+                                        EndDaySearch(date)
+                                    }
+                                }
+                                dateFormat="yyyy년 MM월 dd일"
+                                selectsEnd
+                                startDate={startDate}
+                                endDate={endDate}
+                                minDate={startDate}/>
                         </div>
-                    <div className = "Table">
-                        <TableContainer>
-                            <Table variant='simple'>
-                                <Thead>
-                                <Tr>
-                                    <Th>건물명</Th>
-                                    <Th>출입문 명</Th>
-                                    <Th>ID(비콘)</Th>
-                                    <Th>현재상태</Th>
-                                    <Th>개방시간</Th>
-                                    <Th>폐쇄시간</Th>
-                                    <Th isNumeric>경보상태</Th>
-                                </Tr>
-                                </Thead>
-                                <Tbody>
-                                <Tr>
-                                    <Td>본관</Td>
-                                    <Td>전기실</Td>
-                                    <Td>A01010101</Td>
-                                    <Td>0</Td>
-                                    <Td>08:00:00</Td>
-                                    <Td>08:00:00</Td>
-                                    <Td isNumeric>0</Td>
-                                </Tr>
-                                <Tr>
-                                <Td>본관</Td>
-                                    <Td>통신실</Td>
-                                    <Td>A02020202</Td>
-                                    <Td>0</Td>
-                                    <Td>08:00:00</Td>
-                                    <Td>08:00:00</Td>
-                                    <Td isNumeric>0</Td>
-                                </Tr>
-                                </Tbody>
-                                <Tfoot>
-                                <Tr>
-                                <Td>본관</Td>
-                                    <Td>기계실</Td>
-                                    <Td>A03030303</Td>
-                                    <Td>0</Td>
-                                    <Td>08:00:00</Td>
-                                    <Td>08:00:00</Td>
-                                    <Td isNumeric>0</Td>
-                                </Tr>
-                                </Tfoot>
-                            </Table>
-                        </TableContainer>
-                        </div>
-                    </div>
                 </div>
             </div>
-            <style jsx>{style}</style>
+            <div className="TableThead">
+                <table>
+                    <thead>
+                        <tr> {
+                            header.map((item, index) => {
+                                return <th key = {index}> {item}</th>
+                        })
+                        }</tr>
+                    </thead>
+                </table>
+            </div>
+            <div className="tableTbody">
+                <table>
+                    <tbody> {
+                        Data.map((item, index) => {
+                            const enterDay = item.enterTime;
+                            const exitDay = item.exitTime;
+                            const DataDate = new Date(enterDay).getFullYear() + "-" + String(new Date(enterDay).getMonth() + 1).padStart(2, "0") + "-" + String(new Date(enterDay).getDate()).padStart(2, "0");
+                            const EnterTime = String((new Date(enterDay).getHours()) - 9).padStart(2, "0") + ":" + String(new Date(enterDay).getMinutes()).padStart(2, "0") + ":" + String(new Date(enterDay).getSeconds()).padStart(2, "0");
+                            const ExitTime = String((new Date(exitDay).getHours()) - 9).padStart(2, "0") + ":" + String(new Date(exitDay).getMinutes()).padStart(2, "0") + ":" + String(new Date(exitDay).getSeconds()).padStart(2, "0");
+                            return (<tr key = {index}>
+                                <Accordion allowToggle>
+                                    <AccordionItem>
+                                        <td> {index + 1}</td>
+                                        <td> {item.userName}</td>
+                                        <td> {item.phoneNum}</td>
+                                        <td> {DataDate}</td>
+                                        <td> {EnterTime}</td>
+                                        <td> {ExitTime}</td>
+                                        <td> {item.reason}</td>
+                                        <td>
+                                            <fieldset disabled={disabled[index]}>
+                                                <Button variant='solid'
+                                                    onClick={(e) => {
+                                                            haddleButtonTrue(e);
+                                                            postInfoTrue(item.allowId);
+                                                        }}
+                                                    style={{
+                                                            marginRight: "7%",
+                                                            backgroundColor: "white",
+                                                            color: "green",
+                                                            border: "solid 2px green"
+                                                        }}>
+                                                    Y
+                                                </Button>
+                                                <Button variant='solid'
+                                                    style={{
+                                                            backgroundColor: "white",
+                                                            color: "red",
+                                                            border: "solid 2px red"
+                                                        }}
+                                                    onClick={(e) => {
+                                                            haddleButtonFalse(e);
+                                                            postInfoFalse(item.allowId);
+                                                        }}>
+                                                    N
+                                                </Button>
+                                            </fieldset>
+                                        </td>
+                                        <td>
+                                            <AccordionButton style={
+                                                {marginLeft: "30%"}
+                                            }>
+                                                <Box flex='1' textAlign='center'>
+                                                    상세 정보
+                                                </Box>
+                                                <AccordionIcon/>
+                                            </AccordionButton>
+                                        </td>
+                                        <AccordionPanel pb={4}>
+                                            <td>소속 : {item.company}</td>
+                                            <td>직책 : {item.position}</td>
+                                            <td>건물명 : {item.staName}</td>
+                                            <td>도어명 : {item.doorName}</td>
+                                        </AccordionPanel>
+                                    </AccordionItem>
+                                </Accordion>
+                            </tr>)
+                        })
+                    } </tbody>
+                </table>
+            </div>
         </div>
-    )
+        <UserModal/>
+    </div>
+</div>
+<style jsx> {style}</style></div>)
 }
-
 export default reservationCheck;
