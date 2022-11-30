@@ -134,6 +134,7 @@ function reservationCheck() {
         getDoorInfo();
         getCookieFunc();
     }, [])
+    //쿠키로 최고관리자, 일반관리자를 구분하는 코드
     const [isSuper, setIsSuper] = useState(false);
     const getCookieFunc = () => {
         if (cookies.get("isSuper") === "1") {
@@ -141,6 +142,7 @@ function reservationCheck() {
         } else {
             setIsSuper(false);
         }
+    //
     }
     const header = [
         "No.",
@@ -156,10 +158,8 @@ function reservationCheck() {
     const [Data, setData] = useState([]);
     const [DataClone, setDataClone] = useState(Data);
     const [number, setNumber] = useState(0);
-    const [isSelected, setIsSelected] = useState(false);
     const [startDate, setStartDate] = useState(new Date());
     const [endDate, setEndDate] = useState(new Date());
-    const [allow, setAllow] = useState(false);
     const DataLen = [];
     for (let i = 0; i < Data.length; i++) {
         DataLen.push(false);
@@ -180,7 +180,7 @@ function reservationCheck() {
             return newDate.getTime() <= date.getTime() && new Date(e.enterDate).getTime() >= startDate.getTime()});
         setData(endDayresult);
     }
-    const haddleButtonTrue = (e) => { // setAllow(true);
+    const haddleButtonTrue = (e) => { // Y버튼을 눌렀을 때 작동하는 함수;
         e.preventDefault();
         e.currentTarget.disabled = true;
         e.currentTarget.style.color = "white";
@@ -190,7 +190,7 @@ function reservationCheck() {
         setDisabled(disabledClone);
         setNumber(number + 1);
     }
-    const haddleButtonFalse = (e) => { // setAllow(false);
+    const haddleButtonFalse = (e) => { // N버튼을 눌렀을 때 작동하는 함수;
         e.preventDefault();
         e.currentTarget.disabled = true;
         e.currentTarget.style.color = "white";
@@ -200,13 +200,11 @@ function reservationCheck() {
         setDisabled(disabledClone);
         setNumber(number + 1);
     }
-    const getDoorInfo = async () => {
+    const getDoorInfo = async () => {   //서버에 데이터를 받아오는 함수
         const URL = 'http://localhost:5000/user/visitor';
         axios.defaults.withCredentials = true;
         axios.get(URL).then(res => {
-            // console.log(res);
             if (res.status === 200) {
-                console.log("데이터 받아옴")
                 setData(res.data);
                 setDataClone(res.data);
             } else {
@@ -214,7 +212,7 @@ function reservationCheck() {
             }
         });
     }
-    const postInfoTrue = (e) => {
+    const postInfoTrue = (e) => {   //Y를 눌렀을 떄 
         const trueInfo = {
             "allowId": e,
             "isAllowed": true
@@ -231,13 +229,10 @@ function reservationCheck() {
     const postAllowInfo = async (item) => {
         const URL = "http://localhost:5000/user/visitor"
         axios.defaults.withCredentials = true;
-        // console.log(item);
         await axios.post(URL, item).then(res => {
             if (res.status === 200) {
-                // console.log(item);
                 console.log("======================", "데이터 전송 성공");
             } else {
-                // console.log(item);
                 console.log("데이터전송 실패");
             }
         });

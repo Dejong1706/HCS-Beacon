@@ -169,7 +169,6 @@ function visitorManagement(){
     const addInfo = () => {
 
         const doorListLen = checkedList.length;
-        // console.log(doorListLen);
 
         const info = {
             "userName": userName,
@@ -247,7 +246,6 @@ function visitorManagement(){
         axios.defaults.withCredentials = true;
         axios.get(URL)
         .then(res => {
-            // console.log(res);
             if(res.status === 200){
                 setData(res.data);
                 setDataClone(res.data);            
@@ -262,7 +260,6 @@ function visitorManagement(){
         axios.defaults.withCredentials = true;
         axios.post(URL)
         .then(res => {
-            // console.log(res);
             if(res.status === 200){
                 console.log("데이터를 불러오는데 성공했습니다");
                 setDoorInfoData([]);

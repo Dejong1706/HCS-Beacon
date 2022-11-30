@@ -127,6 +127,7 @@ function emergencyDoorOpen() {
         getStaInfo();
         getCookieFunc();
     }, [])
+    //쿠키값으로 최고관리자, 일반관리자를 확인하는 코드
     const [isSuper, setIsSuper] = useState(false);
     const getCookieFunc = () => {
         if (cookies.get("isSuper") === "1") {
@@ -135,14 +136,14 @@ function emergencyDoorOpen() {
             setIsSuper(false);
         }
     }
-    const header = ["No.", "시설명", "도어명", "개방여부"]
+    //
+    const header = ["No.", "시설명", "도어명", "개방여부"];
     const [Data, setData] = useState([]);
     const [DataClone, setDataClone] = useState([]);
     const [staDoorData, setStaDoorData] = useState([]);
     const [DoorData, setDoorData] = useState([]);
     const [filterData, setFilterData] = useState([]);
     const [checkedList, setCheckedLists] = useState([]);
-    const [isOpen, setIsOpen] = useState(false);
     const [selectStaName, setSelectStaName] = useState("");
     // -----------------------------------------------------------------------
     // 전체 체크박스 체크 함수

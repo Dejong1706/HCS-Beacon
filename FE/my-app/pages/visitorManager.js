@@ -162,7 +162,6 @@ function visitorManagement(){
             "doorId" : list.doorId,
             "staId" : list.staId
         }
-        // console.log(checkedData);
          if (checked) {
             setCheckedLists([...checkedList, list]);
           } else {
@@ -257,7 +256,6 @@ function visitorManagement(){
         axios.defaults.withCredentials = true;
         axios.post(URL)
         .then(res => {
-            // console.log(res);
             if(res.status === 200){
                 console.log("데이터를 불러오는데 성공했습니다");
                 setDoorInfoData([]);
@@ -275,7 +273,6 @@ function visitorManagement(){
         axios.defaults.withCredentials = true;
         axios.post(URL, item)
         .then(res => {
-            // console.log(res);
             if(res.status === 200){
                 console.log("데이터를 불러오는데 성공했습니다");      
             }else{
@@ -407,7 +404,7 @@ function visitorManagement(){
                     <SideBar pageNumber = "5" isSuper = {isSuper}/>
                     <div className = "Main">
                         <div className = "MainHeader">
-                            <h1 className = "MainHeaderTitle" style = {{width: "25%",  marginRight: "1%"}}>🟦 출입자 관리</h1>
+                            <h1 className = "MainHeaderTitle" style = {{width: "25%",  marginRight: "1%"}}>🟦 출입 관리자</h1>
                             <div className = "MainHeaderBtn" style = {{width: "75%", display: "flex", justifyContent: "flex-end"}}>
                                 <Button onClick = {force} style = {{marginRight: "2%", backgroundColor: "#ffb300"}}>
                                     <FontAwesomeIcon icon={faArrowRotateBack}/>
